@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId             Int                  @id @default(autoincrement())
+  username           String
+  password           String
+  email              String
+  avatar             String?
+  createdAt          DateTime             @default(now())
+  level_id           Int
+  exp                Int
+  streak             Int
+  lastLogin          DateTime?
+  role               String
+  Levels             Levels               @relation(fields: [level_id], references: [level_id])
+  Progress           Progress[]
+  UserAchievement    UserAchievement[]
+  UserVocabulary     UserVocabulary[]
+  Leaderboard        Leaderboard[]
+  Subscription       Subscription?
+  Payment            Payment[]
+  Setting            Setting?
+  Feedback           Feedback[]
+  UserDailyChallenge UserDailyChallenge[]
+}
+
+model Lesson {
+  lessonId      Int          @id @default(autoincrement())
+  title         String
+  description   String?
+  levelRequired Int
+  order         Int
+  image         String?
+  Exercise      Exercise[]
+  Progress      Progress[]
+  Vocabulary    Vocabulary[]
+  Feedback      Feedback[]
+}
+
+model Exercise {
+  exerciseId    Int     @id @default(autoincrement())
+  lessonId      Int
+  question      String
+  type          String
+  choices       Json
+  correctAnswer String
+  audio         String?
+  image         String?
+  Lesson        Lesson  @relation(fields: [lessonId], references: [lessonId])
+}
+
+model Progress {
+  progressId  Int       @id @default(autoincrement())
+  userId      Int
+  lessonId    Int
+  status      String
+  score       Int
+  completedAt DateTime?
+  User        User      @relation(fields: [userId], references: [userId])
+  Lesson      Lesson    @relation(fields: [lessonId], references: [lessonId])
+}
+
+model Achievement {
+  achievementId   Int               @id @default(autoincrement())
+  title           String
+  description     String
+  expReward       Int
+  UserAchievement UserAchievement[]
+}
+
+model UserAchievement {
+  userId        Int
+  achievementId Int
+  unlockedAt    DateTime
+  User          User        @relation(fields: [userId], references: [userId])
+  Achievement   Achievement @relation(fields: [achievementId], references: [achievementId])
+
+  @@id([userId, achievementId])
+}
+
+model Vocabulary {
+  vocabId        Int              @id @default(autoincrement())
+  lessonId       Int
+  word           String
+  meaning        String
+  pronunciation  String
+  example        String?
+  Lesson         Lesson           @relation(fields: [lessonId], references: [lessonId])
+  UserVocabulary UserVocabulary[]
+}
+
+model UserVocabulary {
+  userId     Int
+  vocabId    Int
+  learnedAt  DateTime
+  User       User       @relation(fields: [userId], references: [userId])
+  Vocabulary Vocabulary @relation(fields: [vocabId], references: [vocabId])
+
+  @@id([userId, vocabId])
+}
+
+model Leaderboard {
+  leaderboardId Int  @id @default(autoincrement())
+  userId        Int
+  week          Int
+  score         Int
+  User          User @relation(fields: [userId], references: [userId])
+}
+
+model DailyChallenge {
+  challengeId        Int                  @id @default(autoincrement())
+  description        String
+  expReward          Int
+  date               DateTime
+  UserDailyChallenge UserDailyChallenge[]
+}
+
+model UserDailyChallenge {
+  userId         Int
+  challengeId    Int
+  completedAt    DateTime
+  User           User           @relation(fields: [userId], references: [userId])
+  DailyChallenge DailyChallenge @relation(fields: [challengeId], references: [challengeId])
+
+  @@id([userId, challengeId])
+}
+
+model Feedback {
+  feedbackId Int      @id @default(autoincrement())
+  userId     Int
+  lessonId   Int
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  User       User     @relation(fields: [userId], references: [userId])
+  Lesson     Lesson   @relation(fields: [lessonId], references: [lessonId])
+}
+
+model Subscription {
+  subscriptionId Int      @id @default(autoincrement())
+  userId         Int      @unique
+  startDate      DateTime
+  endDate        DateTime
+  type           String
+  User           User     @relation(fields: [userId], references: [userId])
+}
+
+model Payment {
+  paymentId   Int      @id @default(autoincrement())
+  userId      Int
+  amount      Float
+  paymentDate DateTime
+  method      String
+  User        User     @relation(fields: [userId], references: [userId])
+}
+
+model Setting {
+  userId              Int     @id
+  language            String
+  notificationEnabled Boolean
+  User                User    @relation(fields: [userId], references: [userId])
+}
+
+model Levels {
+  level_id     Int    @id @default(autoincrement())
+  level_name   String
+  exp_required Int
+  User         User[]
+}
