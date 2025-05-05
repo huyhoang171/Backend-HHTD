@@ -20882,11 +20882,11 @@ export namespace Prisma {
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
     userId?: number
+    username?: string
+    password?: string
     AND?: UserWhereInput | UserWhereInput[]
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
-    username?: StringFilter<"User"> | string
-    password?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
     avatar?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
@@ -20905,7 +20905,7 @@ export namespace Prisma {
     Setting?: XOR<SettingNullableScalarRelationFilter, SettingWhereInput> | null
     Feedback?: FeedbackListRelationFilter
     UserDailyChallenge?: UserDailyChallengeListRelationFilter
-  }, "userId">
+  }, "userId" | "username" | "password">
 
   export type UserOrderByWithAggregationInput = {
     userId?: SortOrder

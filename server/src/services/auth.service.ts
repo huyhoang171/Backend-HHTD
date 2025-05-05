@@ -8,8 +8,8 @@ export class AuthService {
 
   async validateUser(username: string, password: string): Promise<{ success: boolean; message: string; role?: string }> {
     const user = await this.prisma.user.findUnique({ where: { username } });
-
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    //await bcrypt.compare(password, user.password
+    if (!user || (user.password !== password)) {
       return { success: false, message: 'Invalid username or password' };
     }
 
