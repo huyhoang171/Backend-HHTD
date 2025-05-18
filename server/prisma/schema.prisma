@@ -15,166 +15,141 @@ datasource db {
 }
 
 model User {
-  userId       Int       @id @default(autoincrement())
-  username     String    @unique
-  password     String    @unique
-  email        String
-  avatar       String?
-  createdAt    DateTime  @default(now())
-  level_id     Int
-  exp          Int
-  streak       Int
-  lastLogin    DateTime?
-  role         String
-  Levels       Levels    @relation(fields: [level_id], references: [level_id])
-  Progress     Progress[]
-  UserAchievement UserAchievement[]
-  UserVocabulary UserVocabulary[]
-  Leaderboard  Leaderboard[]
-  Subscription Subscription?
-  Payment      Payment[]
-  Setting      Setting?
-  Feedback     Feedback[]
-  UserDailyChallenge UserDailyChallenge[]
+  id                    Int                          @id @default(autoincrement())
+  username              String                       @unique
+  email                 String?                      @unique
+  password              String
+  createdAt             DateTime                     @default(now())
+  topicProgress         UserTopicProgress[]          // Quan hệ với tiến trình học Topic
+  grammarLessonProgress UserGrammarLessonProgress[]  // Quan hệ với tiến trình học GrammarLesson
+  userSpeakingProgress  UserSpeakingProgress[]      // Quan hệ với tiến trình speaking
+  dayLearned           DayLearned[]                // Quan hệ với bảng DayLearned
 }
 
-model Lesson {
-  lessonId     Int         @id @default(autoincrement())
+model Topic {
+  id          Int                 @id @default(autoincrement())
+  name        String
+  parent_id   Int?
+  titleVN     String?
+  image       String?
+  parent      Topic?              @relation("TopicParent", fields: [parent_id], references: [id], onDelete: SetNull)
+  children    Topic[]             @relation("TopicParent")
+  words       Word[]
+  userProgress UserTopicProgress[] // Quan hệ với người dùng đã học topic này
+  @@unique([name, parent_id])
+}
+
+model Word {
+  id               Int      @id @default(autoincrement())
+  word             String
+  pos              String?
+  phonetic         String?
+  phonetic_text    String?
+  phonetic_am      String?
+  phonetic_am_text String?
+  topic_id         Int?
+  topic            Topic?   @relation(fields: [topic_id], references: [id], onDelete: SetNull)
+  senses           Sense[]
+}
+
+model Sense {
+  id         Int       @id @default(autoincrement())
+  word_id    Int
+  definition String
+  word       Word      @relation(fields: [word_id], references: [id], onDelete: Cascade)
+  examples   Example[]
+}
+
+model Example {
+  id           Int    @id @default(autoincrement())
+  sense_id     Int
+  example_text String
+  cf           String?
+  sense        Sense  @relation(fields: [sense_id], references: [id], onDelete: Cascade)
+}
+
+model GrammarTopic {
+  id          Int             @id @default(autoincrement())
+  title       String
+  description String?
+  // progress    Int             @default(0) // Cân nhắc bỏ nếu progress này là của user
+  // total       Int             @default(0) // Cân nhắc bỏ nếu total này là của user
+  image       String?
+  lessons     GrammarLesson[]
+}
+
+model GrammarLesson {
+  id           Int                           @id @default(autoincrement())
+  topic_id     Int
   title        String
-  description  String?
-  levelRequired Int
-  order        Int
+  sub_title    String?
+  path         String                        @unique
   image        String?
-  Exercise     Exercise[]
-  Progress     Progress[]
-  Vocabulary   Vocabulary[]
-  Feedback     Feedback[]
+  topic        GrammarTopic                  @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  userProgress UserGrammarLessonProgress[]   // Quan hệ với người dùng đã học bài này
 }
 
-model Exercise {
-  exerciseId    Int      @id @default(autoincrement())
-  lessonId      Int
-  question      String
-  type          String
-  choices       Json
-  correctAnswer String
-  audio         String?
-  image         String?
-  Lesson        Lesson   @relation(fields: [lessonId], references: [lessonId])
+// Bảng lưu tiến trình học Topic của User
+model UserTopicProgress {
+  id              Int            @id @default(autoincrement())
+  userId          Int
+  topicId         Int
+  status          ProgressStatus @default(NOT_STARTED)
+  learnedWords    Int            @default(0) // Số từ đã học trong topic này
+  lastAccessedAt  DateTime       @updatedAt
+  completedAt     DateTime?
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic           Topic          @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId]) // Mỗi user chỉ có 1 record tiến trình cho mỗi topic
 }
 
-model Progress {
-  progressId   Int       @id @default(autoincrement())
+// Bảng lưu tiến trình học GrammarLesson của User
+model UserGrammarLessonProgress {
+  id              Int            @id @default(autoincrement())
+  userId          Int
+  grammarLessonId Int
+  status          ProgressStatus @default(NOT_STARTED)
+  // Có thể thêm các trường khác như score, attempts nếu có quiz trong bài học
+  lastAccessedAt  DateTime       @updatedAt
+  completedAt     DateTime?
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grammarLesson   GrammarLesson  @relation(fields: [grammarLessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, grammarLessonId]) // Mỗi user chỉ có 1 record tiến trình cho mỗi grammar lesson
+}
+
+model Speaking {
+  id     Int    @id @default(autoincrement())
+  title  String
+  userProgress UserSpeakingProgress[]
+}
+
+model UserSpeakingProgress {
+  id           Int      @id @default(autoincrement())
   userId       Int
-  lessonId     Int
-  status       String
-  score        Int
-  completedAt  DateTime?
-  User         User      @relation(fields: [userId], references: [userId])
-  Lesson       Lesson    @relation(fields: [lessonId], references: [lessonId])
+  spkId        Int
+  learnedWords Int      @default(0)
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  speaking     Speaking @relation(fields: [spkId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, spkId])
 }
 
-model Achievement {
-  achievementId Int       @id @default(autoincrement())
-  title         String
-  description   String
-  expReward     Int
-  UserAchievement UserAchievement[]
+model DayLearned {
+  id        Int    @id @default(autoincrement())
+  userId    Int
+  date      String // dd-mm-yyyy
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, date])
 }
 
-model UserAchievement {
-  userId         Int
-  achievementId  Int
-  unlockedAt     DateTime
-  User           User         @relation(fields: [userId], references: [userId])
-  Achievement    Achievement  @relation(fields: [achievementId], references: [achievementId])
-  @@id([userId, achievementId])
-}
-
-model Vocabulary {
-  vocabId       Int       @id @default(autoincrement())
-  lessonId      Int
-  word          String
-  meaning       String
-  pronunciation String
-  example       String?
-  Lesson        Lesson    @relation(fields: [lessonId], references: [lessonId])
-  UserVocabulary UserVocabulary[]
-}
-
-model UserVocabulary {
-  userId       Int
-  vocabId      Int
-  learnedAt    DateTime
-  User         User       @relation(fields: [userId], references: [userId])
-  Vocabulary   Vocabulary @relation(fields: [vocabId], references: [vocabId])
-  @@id([userId, vocabId])
-}
-
-model Leaderboard {
-  leaderboardId Int       @id @default(autoincrement())
-  userId        Int
-  week          Int
-  score         Int
-  User          User      @relation(fields: [userId], references: [userId])
-}
-
-model DailyChallenge {
-  challengeId   Int       @id @default(autoincrement())
-  description   String
-  expReward     Int
-  date          DateTime
-  UserDailyChallenge UserDailyChallenge[]
-}
-
-model UserDailyChallenge {
-  userId       Int
-  challengeId  Int
-  completedAt  DateTime
-  User         User           @relation(fields: [userId], references: [userId])
-  DailyChallenge DailyChallenge @relation(fields: [challengeId], references: [challengeId])
-  @@id([userId, challengeId])
-}
-
-model Feedback {
-  feedbackId   Int       @id @default(autoincrement())
-  userId       Int
-  lessonId     Int
-  rating       Int
-  comment      String?
-  createdAt    DateTime  @default(now())
-  User         User      @relation(fields: [userId], references: [userId])
-  Lesson       Lesson    @relation(fields: [lessonId], references: [lessonId])
-}
-
-model Subscription {
-  subscriptionId Int       @id @default(autoincrement())
-  userId         Int       @unique
-  startDate      DateTime
-  endDate        DateTime
-  type           String
-  User           User      @relation(fields: [userId], references: [userId])
-}
-
-model Payment {
-  paymentId     Int       @id @default(autoincrement())
-  userId        Int
-  amount        Float
-  paymentDate   DateTime
-  method        String
-  User          User      @relation(fields: [userId], references: [userId])
-}
-
-model Setting {
-  userId              Int       @id
-  language            String
-  notificationEnabled Boolean
-  User                User      @relation(fields: [userId], references: [userId])
-}
-
-model Levels {
-  level_id     Int       @id @default(autoincrement())
-  level_name   String
-  exp_required Int
-  User         User[]
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
 }
